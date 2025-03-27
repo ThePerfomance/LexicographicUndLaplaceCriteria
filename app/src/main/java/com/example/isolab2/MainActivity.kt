@@ -12,8 +12,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 
 class MainActivity : AppCompatActivity() {
     private val students = mutableListOf(
@@ -36,126 +41,30 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        // Заполняем таблицу входных данных
-        val inputTable = findViewById<TableLayout>(R.id.inputTable)
-        for (student in students) {
-            val row = TableRow(this).apply {
-                addView(TextView(this@MainActivity).apply {
-                    text = student.name
-                    gravity = Gravity.CENTER
-                    setPadding(8, 8, 8, 8)
-                })
-                addView(TextView(this@MainActivity).apply {
-                    text = student.score.toString()
-                    gravity = Gravity.CENTER
-                    setPadding(8, 8, 8, 8)
-                })
-                addView(TextView(this@MainActivity).apply {
-                    text = student.duration.toString()
-                    gravity = Gravity.CENTER
-                    setPadding(8, 8, 8, 8)
-                })
-                addView(TextView(this@MainActivity).apply {
-                    text = student.attempts.toString()
-                    gravity = Gravity.CENTER
-                    setPadding(8, 8, 8, 8)
-                })
-                addView(TextView(this@MainActivity).apply {
-                    text = student.difficulty.toString()
-                    gravity = Gravity.CENTER
-                    setPadding(8, 8, 8, 8)
-                })
+        // Настройка ViewPager2
+        val viewPager = findViewById<ViewPager2>(R.id.viewPager)
+        viewPager.adapter = ViewPagerAdapter(this)
+
+        // Настройка TabLayout
+        val tabLayout = findViewById<TabLayout>(R.id.tabLayout)
+        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "Результаты"
+                1 -> "Формулы"
+                else -> ""
             }
-            inputTable.addView(row)
-        }
+        }.attach()
 
-        // Обработка кнопки
-        findViewById<Button>(R.id.calculateButton).setOnClickListener {
-            val lexicographicResult = CalculationLogic.lexicographicSort(students)
-            val (laplaceResult, overallLaplace) = CalculationLogic.laplaceCriterion(students)
+    }
+    private inner class ViewPagerAdapter(activity: AppCompatActivity) : FragmentStateAdapter(activity) {
+        override fun getItemCount(): Int = 2
 
-            // Заполняем таблицу лексикографического метода
-            val lexicographicTable = findViewById<TableLayout>(R.id.lexicographicTable)
-            lexicographicTable.removeAllViews()
-            lexicographicTable.addView(createHeaderRow())
-            for (student in lexicographicResult) {
-                val row = createRow(student)
-                lexicographicTable.addView(row)
+        override fun createFragment(position: Int): Fragment {
+            return when (position) {
+                0 -> ResultsFragment()
+                1 -> FormulasFragment()
+                else -> throw IllegalArgumentException("Invalid position")
             }
-
-            // Заполняем таблицу критерия Лапласа
-            val laplaceTable = findViewById<TableLayout>(R.id.laplaceTable)
-            laplaceTable.removeAllViews()
-            laplaceTable.addView(createHeaderRow())
-            for (student in laplaceResult) {
-                val row = createRow(student)
-                laplaceTable.addView(row)
-            }
-
-            // Обновляем текстовые поля с общими результатами
-            findViewById<TextView>(R.id.lexicographicResultText).text =
-                "Общий результат: Первое место занял ${lexicographicResult.first().name}"
-            findViewById<TextView>(R.id.laplaceResultText).text =
-                "Общий результат: Максимальный критерий Лапласа = %.2f".format(overallLaplace)
-        }
-    }
-    private fun createHeaderRow(): TableRow {
-        return TableRow(this).apply {
-            setBackgroundColor(Color.parseColor("#E3F2FD")) // Светло-синий цвет
-            addView(TextView(this@MainActivity).apply {
-                text = "Имя"
-                gravity = Gravity.CENTER
-                setTypeface(null, Typeface.BOLD)
-                setPadding(8, 8, 8, 8)
-                setTextColor(Color.parseColor("#3F51B5")) // Темно-синий текст
-            })
-            addView(TextView(this@MainActivity).apply {
-                text = "Оценка"
-                gravity = Gravity.CENTER
-                setTypeface(null, Typeface.BOLD)
-                setPadding(8, 8, 8, 8)
-                setTextColor(Color.parseColor("#3F51B5"))
-            })
-            addView(TextView(this@MainActivity).apply {
-                text = "Время (мин)"
-                gravity = Gravity.CENTER
-                setTypeface(null, Typeface.BOLD)
-                setPadding(8, 8, 8, 8)
-                setTextColor(Color.parseColor("#3F51B5"))
-            })
-            addView(TextView(this@MainActivity).apply {
-                text = "Попытки"
-                gravity = Gravity.CENTER
-                setTypeface(null, Typeface.BOLD)
-                setPadding(8, 8, 8, 8)
-                setTextColor(Color.parseColor("#3F51B5"))
-            })
-            addView(TextView(this@MainActivity).apply {
-                text = "Критерий"
-                gravity = Gravity.CENTER
-                setTypeface(null, Typeface.BOLD)
-                setPadding(8, 8, 8, 8)
-                setTextColor(Color.parseColor("#3F51B5"))
-            })
-        }
-    }
-    private fun createRow(student: Student): TableRow {
-        return TableRow(this).apply {
-            setBackgroundColor(Color.WHITE)
-            addView(createCell(student.name))
-            addView(createCell(student.score.toString()))
-            addView(createCell(student.duration.toString()))
-            addView(createCell(student.attempts.toString()))
-            addView(createCell(student.criterion))
-        }
-    }
-    private fun createCell(text: String): TextView {
-        return TextView(this).apply {
-            this.text = text
-            gravity = Gravity.CENTER
-            setPadding(8, 8, 8, 8)
-            setTextColor(Color.BLACK)
-            setBackgroundResource(android.R.drawable.list_selector_background)
         }
     }
 }
